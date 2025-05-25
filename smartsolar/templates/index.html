@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartSolar Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            background-color: #333;
+            color: white;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .data-section, .keys-section {
+            background-color: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .data-entry {
+            border-bottom: 1px solid #eee;
+            padding: 10px 0;
+        }
+        .data-entry:last-child {
+            border-bottom: none;
+        }
+        .timestamp {
+            color: #666;
+            font-size: 0.9em;
+        }
+        .characteristic {
+            margin: 5px 0;
+            font-family: monospace;
+            background-color: #f8f8f8;
+            padding: 5px;
+            border-radius: 3px;
+        }
+        .parsed-data {
+            background-color: #e8f5e9;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .parsed-data h4 {
+            margin-top: 0;
+            color: #2e7d32;
+        }
+        .data-value {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+        }
+        .data-label {
+            font-weight: bold;
+        }
+        .controls {
+            margin-bottom: 20px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button.delete {
+            background-color: #f44336;
+        }
+        button.delete:hover {
+            background-color: #da190b;
+        }
+        .error {
+            color: red;
+            padding: 10px;
+            background-color: #ffebee;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .success {
+            color: green;
+            padding: 10px;
+            background-color: #e8f5e9;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .loading {
+            color: #666;
+            font-style: italic;
+        }
+        .warning {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .key-form {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f5f5f5;
+            border-radius: 5px;
+        }
+        .key-form input {
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 200px;
+        }
+        .key-list {
+            margin: 20px 0;
+        }
+        .key-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        .key-item:last-child {
+            border-bottom: none;
+        }
+        .masked-key {
+            font-family: monospace;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>SmartSolar Dashboard</h1>
+            <p>Real-time data monitoring</p>
+        </div>
+        
+        <div class="controls">
+            <button onclick="loadLatest()">Load Latest</button>
+            <button onclick="loadTail(10)">Last 10 Entries</button>
+            <button onclick="loadTail(50)">Last 50 Entries</button>
+            <button onclick="autoRefresh()">Auto Refresh (30s)</button>
+            <button onclick="stopRefresh()">Stop Refresh</button>
+            <button onclick="toggleKeysSection()">Manage Keys</button>
+        </div>
+        
+        <div id="status" class="loading">Loading...</div>
+        
+        <div class="keys-section" id="keys-section" style="display: none;">
+            <h2>Encryption Key Management</h2>
+            <div class="key-form">
+                <h3>Add/Update Key</h3>
+                <input type="text" id="device-address" placeholder="Device MAC (e.g., DF:C9:B0:6E:3F:EF)">
+                <input type="password" id="encryption-key" placeholder="Encryption key">
+                <button onclick="updateKey()">Save Key</button>
+            </div>
+            <div class="key-list" id="key-list">
+                <h3>Configured Devices</h3>
+                <div id="keys-container"></div>
+            </div>
+        </div>
+        
+        <div class="data-section">
+            <h2>Data Entries</h2>
+            <div id="data-container"></div>
+        </div>
+    </div>
+
+    <script>
+        let refreshInterval = null;
+
+        function toggleKeysSection() {
+            const section = document.getElementById('keys-section');
+            if (section.style.display === 'none') {
+                section.style.display = 'block';
+                loadKeys();
+            } else {
+                section.style.display = 'none';
+            }
+        }
+
+        async function loadKeys() {
+            try {
+                const response = await fetch('/api/keys');
+                if (response.ok) {
+                    const keys = await response.json();
+                    const container = document.getElementById('keys-container');
+                    container.innerHTML = '';
+                    
+                    if (Object.keys(keys).length === 0) {
+                        container.innerHTML = '<p>No devices configured</p>';
+                    } else {
+                        for (const [address, maskedKey] of Object.entries(keys)) {
+                            const div = document.createElement('div');
+                            div.className = 'key-item';
+                            div.innerHTML = `
+                                <div>
+                                    <strong>${address}</strong>
+                                    <span class="masked-key">${maskedKey}</span>
+                                </div>
+                                <button class="delete" onclick="deleteKey('${address}')">Delete</button>
+                            `;
+                            container.appendChild(div);
+                        }
+                    }
+                }
+            } catch (error) {
+                showError('Error loading keys: ' + error.message);
+            }
+        }
+
+        async function updateKey() {
+            const addressInput = document.getElementById('device-address');
+            const keyInput = document.getElementById('encryption-key');
+            
+            const deviceAddress = addressInput.value.trim().toUpperCase();
+            const encryptionKey = keyInput.value.trim();
+            
+            if (!deviceAddress) {
+                showError('Please enter a device MAC address');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/keys', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        device_address: deviceAddress,
+                        encryption_key: encryptionKey
+                    })
+                });
+                
+                const result = await response.json();
+                if (response.ok) {
+                    showSuccess('Key saved successfully! The data collection service will use this key on the next scan cycle (within 60 seconds).');
+                    keyInput.value = '';
+                    loadKeys();
+                } else {
+                    showError(result.error || 'Failed to save key');
+                }
+            } catch (error) {
+                showError('Error saving key: ' + error.message);
+            }
+        }
+
+        async function deleteKey(deviceAddress) {
+            if (!confirm(`Delete key for ${deviceAddress}?`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/keys/${deviceAddress}`, {
+                    method: 'DELETE'
+                });
+                
+                const result = await response.json();
+                if (response.ok) {
+                    showSuccess('Key deleted successfully');
+                    loadKeys();
+                } else {
+                    showError(result.error || 'Failed to delete key');
+                }
+            } catch (error) {
+                showError('Error deleting key: ' + error.message);
+            }
+        }
+
+        function formatParsedData(parsed) {
+            const units = {
+                voltage: 'V',
+                battery_voltage: 'V',
+                current: 'A',
+                battery_charging_current: 'A',
+                power: 'W',
+                solar_power: 'W',
+                consumed_ah: 'Ah',
+                soc: '%',
+                temperature: '°C',
+                pv_power: 'W',
+                yield_today: 'Wh',
+                external_device_load: 'A'
+            };
+
+            let html = '<div class="parsed-data"><h4>Parsed Values:</h4>';
+            
+            for (const [key, value] of Object.entries(parsed)) {
+                const label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                const unit = units[key] || '';
+                
+                if (typeof value === 'boolean') {
+                    html += `<div class="data-value"><span class="data-label">${label}:</span><span>${value ? 'Yes' : 'No'}</span></div>`;
+                } else if (typeof value === 'number') {
+                    html += `<div class="data-value"><span class="data-label">${label}:</span><span>${value.toFixed(2)} ${unit}</span></div>`;
+                } else {
+                    html += `<div class="data-value"><span class="data-label">${label}:</span><span>${value}</span></div>`;
+                }
+            }
+            
+            html += '</div>';
+            return html;
+        }
+
+        function formatData(entries) {
+            if (!Array.isArray(entries)) {
+                entries = [entries];
+            }
+            
+            const container = document.getElementById('data-container');
+            container.innerHTML = '';
+            
+            // Check if we need to show encryption key warning
+            let needsKey = false;
+            
+            entries.forEach(entry => {
+                const div = document.createElement('div');
+                div.className = 'data-entry';
+                
+                let html = `
+                    <div class="timestamp">Time: ${entry.timestamp}</div>
+                    <div>Device: ${entry.device_name} (${entry.device_address})</div>
+                `;
+                
+                // If we have parsed data, show it
+                if (entry.parsed_data) {
+                    html += formatParsedData(entry.parsed_data);
+                } else {
+                    needsKey = true;
+                    // Show raw readings
+                    html += '<div>Raw Characteristics:</div>';
+                    for (const [uuid, value] of Object.entries(entry.readings || {})) {
+                        html += `<div class="characteristic">${uuid}: ${value}</div>`;
+                    }
+                }
+                
+                div.innerHTML = html;
+                container.appendChild(div);
+            });
+            
+            // Show warning if encryption key is needed
+            if (needsKey) {
+                const warning = document.createElement('div');
+                warning.className = 'warning';
+                warning.innerHTML = `
+                    <strong>Encryption Key Required!</strong><br>
+                    To see decoded values, click "Manage Keys" above and add your device's encryption key.
+                    <br><br>
+                    To get the key from VictronConnect app:
+                    <ol>
+                        <li>Connect to your SmartSolar device</li>
+                        <li>Go to Settings → Product Info</li>
+                        <li>Enable "Instant Readout via Bluetooth"</li>
+                        <li>Copy the encryption key</li>
+                    </ol>
+                `;
+                container.insertBefore(warning, container.firstChild);
+            }
+        }
+
+        function showError(message) {
+            document.getElementById('status').innerHTML = `<div class="error">${message}</div>`;
+        }
+
+        function showSuccess(message) {
+            document.getElementById('status').innerHTML = `<div class="success">${message}</div>`;
+        }
+
+        function showStatus(message) {
+            document.getElementById('status').innerHTML = message;
+        }
+
+        async function loadLatest() {
+            // Hide keys section when loading data
+            document.getElementById('keys-section').style.display = 'none';
+            
+            showStatus('Loading latest data...');
+            try {
+                const response = await fetch('/api/latest');
+                if (response.ok) {
+                    const data = await response.json();
+                    formatData(data);
+                    showStatus('Latest data loaded');
+                } else {
+                    showError('No data available');
+                }
+            } catch (error) {
+                showError('Error loading data: ' + error.message);
+            }
+        }
+
+        async function loadTail(n) {
+            // Hide keys section when loading data
+            document.getElementById('keys-section').style.display = 'none';
+            
+            showStatus(`Loading last ${n} entries...`);
+            try {
+                const response = await fetch(`/api/tail/${n}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    formatData(data);
+                    showStatus(`Loaded ${data.length} entries`);
+                } else {
+                    showError('Error loading data');
+                }
+            } catch (error) {
+                showError('Error loading data: ' + error.message);
+            }
+        }
+
+        function autoRefresh() {
+            stopRefresh();
+            loadLatest();
+            refreshInterval = setInterval(loadLatest, 30000);
+            showStatus('Auto-refresh enabled (30 seconds)');
+        }
+
+        function stopRefresh() {
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+                refreshInterval = null;
+                showStatus('Auto-refresh stopped');
+            }
+        }
+
+        // Load latest data on page load
+        window.onload = () => loadLatest();
+    </script>
+</body>
+</html> 

@@ -1,0 +1,39 @@
+name: SmartSolar BLE Monitor
+type: sw.application
+description: >-
+  Bluetooth Low Energy data collection from Victron SmartSolar charge controllers
+  with encrypted data decryption and web dashboard for monitoring solar charging metrics.
+joinable: false
+post-provisioning: >-
+  ## Getting Started
+  
+  1. Access the web dashboard at `http://<device-ip>`
+  2. Click "Manage Keys" to add your SmartSolar device encryption key
+  3. Get your key from VictronConnect app: Settings → Product Info → Instant Readout Details
+  4. Data will be collected every 60 seconds and stored in daily JSON files
+  
+  See the README for detailed instructions.
+assets:
+  repository:
+    type: blob.asset
+    data:
+      url: 'https://github.com/your-username/balena-smartsolar'
+  logo:
+    type: blob.asset
+    data:
+      url: >-
+        https://raw.githubusercontent.com/balena-io-library/base-images/master/balena-logo.png
+data:
+  applicationEnvironmentVariables:
+    - TZ: 'UTC'
+  defaultDeviceType: raspberrypi0-wifi
+  supportedDeviceTypes:
+    - raspberrypi0-wifi
+    - raspberrypi
+    - raspberrypi2
+    - raspberrypi3
+    - raspberrypi3-64
+    - raspberrypi4-64
+    - raspberrypi400-64
+    - raspberrypicm4-ioboard
+version: 1.0.0 
