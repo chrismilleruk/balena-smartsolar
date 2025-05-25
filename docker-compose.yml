@@ -1,0 +1,27 @@
+version: '2.4'
+volumes:
+  logs: {}
+  config: {}
+  data: {}
+
+services:
+  bluetooth:
+    image: bh.cr/balenalabs/bluetooth-rpi
+    labels:
+      io.balena.features.dbus: '1'
+    cap_add:
+      - NET_ADMIN
+    restart: on-failure
+    network_mode: host
+
+  smartsolar:
+    build: ./smartsolar
+    depends_on:
+      - bluetooth
+    restart: on-failure
+    environment:
+      - TZ=UTC
+    volumes:
+      - logs:/var/log
+      - data:/data
+  
