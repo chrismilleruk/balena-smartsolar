@@ -1,12 +1,14 @@
-FROM --platform=linux/arm/v6 python:3.9-slim-bullseye
+FROM arm32v6/python:3-alpine
 
 WORKDIR /usr/src/app
 
 # Install system dependencies
-RUN apt-get update && apt-get install -y \
-    bluetooth \
+RUN apk add --no-cache \
     bluez \
-    && rm -rf /var/lib/apt/lists/*
+    bluez-dev \
+    gcc \
+    musl-dev \
+    linux-headers
 
 # Copy requirements first for better caching
 COPY requirements.txt .
