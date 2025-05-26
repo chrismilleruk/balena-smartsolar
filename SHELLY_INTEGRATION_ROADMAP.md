@@ -21,7 +21,7 @@ This document outlines the integration of a Shelly Plus Uni device into the bale
 - Reading switch states: `switch:0` (WiFi power) currently OFF
 - Network status confirmed: WiFi connected with strong signal (-39 dBm)
 
-### Test Files (moved to `smartsolar/shelly-tests/`)
+### Test Files (moved to `shelly/tests/`)
 - `shelly_ble_client.py` - Simplified working client
 - Various test scripts for protocol discovery
 
@@ -46,11 +46,11 @@ Shelly Device (handles all scheduling/control logic)
      ↓ BLE
 shelly container (simple monitoring only)
      ↓ NDJSON
-/data/shelly/shelly_YYYY-MM-DD.ndjson
+/data/shelly-v1/data_YYYY-MM-DD.ndjson
      ↓
 Telegraf → InfluxDB Cloud
 
-SmartSolar → smartsolar container → /data/smartsolar/*.ndjson
+SmartSolar → smartsolar container → /data/smartsolar-v1/data_*.ndjson
                                           ↓
                                       Telegraf
 ```
@@ -59,20 +59,26 @@ SmartSolar → smartsolar container → /data/smartsolar/*.ndjson
 
 ### Phase 1: Minimum Viable Product (Required for Boat Installation)
 
-#### 1.1 Create Shelly Container
-- [ ] Create new `shelly` container structure
-  - [ ] Copy patterns from existing `smartsolar` container
-  - [ ] Dockerfile based on Alpine/Python (same as smartsolar)
-  - [ ] docker-compose.yml service definition
-- [ ] Port working BLE client code (`shelly_ble_client.py`)
-- [ ] Implement monitoring loop (30-second intervals)
-  - [ ] Read battery voltage
-  - [ ] Read switch states
-  - [ ] Read device temperature
-- [ ] Add NDJSON logging using same pattern as smartsolar
-  - [ ] Use TimedRotatingFileHandler (daily rotation, 30 days retention)
-  - [ ] Write to `/data/shelly/shelly_YYYY-MM-DD.ndjson`
-  - [ ] Same format: `{"timestamp": "...", "battery2_voltage": 12.5, ...}`
+#### 1.1 Create Shelly Container ✅
+- [x] Create new `shelly` container structure
+  - [x] Copy patterns from existing `smartsolar` container
+  - [x] Dockerfile based on Alpine/Python (same as smartsolar)
+  - [x] docker-compose.yml service definition
+- [x] Port working BLE client code (`shelly_ble_client.py`)
+- [x] Implement monitoring loop (30-second intervals)
+  - [x] Read battery voltage (generic `voltmeter_100` field)
+  - [x] Read switch states (generic `switch_0_output`, `switch_1_output`)
+  - [x] Read device temperature
+  - [x] Read input states
+  - [x] Read system info (uptime, memory, storage)
+  - [x] Read WiFi status
+- [x] Add NDJSON logging using same pattern as smartsolar
+  - [x] Use TimedRotatingFileHandler (daily rotation, 30 days retention)
+  - [x] Write to `/data/shelly-v1/data_YYYY-MM-DD.ndjson`
+  - [x] Convert booleans to integers for InfluxDB compatibility
+- [x] Use generic field names (not application-specific)
+- [x] Organize test files in `shelly/tests/`
+- [x] Version-based data paths for future compatibility
 
 #### 1.2 Configure Shelly Device
 - [ ] Upload WiFi scheduling script to Shelly
@@ -82,10 +88,10 @@ SmartSolar → smartsolar container → /data/smartsolar/*.ndjson
 - [ ] Test manual override functionality
 
 #### 1.3 Update Existing Infrastructure
-- [ ] Configure Telegraf to monitor `/data/shelly/*.ndjson`
+- [x] Configure Telegraf to monitor `/data/shelly-*/data_*.ndjson`
 - [ ] Extend existing dashboard to show:
-  - [ ] Battery 2 voltage gauge
-  - [ ] WiFi power state indicator
+  - [ ] Battery 2 voltage gauge (using `voltmeter_100`)
+  - [ ] WiFi power state indicator (using `switch_0_output`)
   - [ ] Shelly device temperature
 
 #### 1.4 Testing Before Installation
@@ -98,6 +104,7 @@ SmartSolar → smartsolar container → /data/smartsolar/*.ndjson
 - SignalK integration (if needed for local displays)
 - Advanced error handling and connection management
 - Historical analysis features
+- Event-based logging for switch state changes
 
 ## Technical Details
 
@@ -113,21 +120,22 @@ The Shelly Plus Uni uses a JSON-RPC protocol over BLE with:
 - `Switch.Set` - Control relay outputs (only for initial setup/testing)
 
 ### NDJSON File Format
-Following the same pattern as smartsolar:
+Following the same pattern as smartsolar, with generic field names:
 ```json
-{"timestamp": "2024-01-15T10:30:00Z", "battery2_voltage": 12.5, "wifi_power": true, "nav_power": false, "device_temp": 23.4}
-{"timestamp": "2024-01-15T10:30:30Z", "battery2_voltage": 12.4, "wifi_power": true, "nav_power": false, "device_temp": 23.5}
+{"timestamp": "2024-01-15T10:30:00Z", "voltmeter_100": 12.5, "switch_0_output": 1, "switch_1_output": 0, "device_temp_c": 23.4}
+{"timestamp": "2024-01-15T10:30:30Z", "voltmeter_100": 12.4, "switch_0_output": 1, "switch_1_output": 0, "device_temp_c": 23.5}
 ```
+
+### File Paths
+- **Data**: `/data/shelly-v1/data_YYYY-MM-DD.ndjson`
+- **Logs**: `/data/logs/shelly/shelly.log`
+- **Version**: When NDJSON format changes, increment version (e.g., `shelly-v2`)
 
 ## Environment Variables
 ```bash
 # Shelly device configuration
 SHELLY_MAC=A0:DD:6C:4B:9C:36
 SHELLY_SCAN_INTERVAL=30
-
-# Data paths (following smartsolar pattern)
-DATA_PATH=/data/shelly
-LOG_PATH=/data/logs/shelly
 
 # All scheduling is handled by Shelly device scripts
 # Python container only monitors and logs
@@ -142,5 +150,5 @@ LOG_PATH=/data/logs/shelly
 - ✅ Dashboard showing Battery 2 voltage and WiFi state
 
 ## References
-- Working BLE client: `smartsolar/shelly-tests/shelly_ble_client.py`
+- Working BLE client: `shelly/tests/shelly_ble_client.py`
 - SmartSolar patterns to copy: `smartsolar/main.py` 

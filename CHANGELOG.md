@@ -1,5 +1,44 @@
 # Changelog
 
+## [0.2.0] - 2025-05-26
+
+### New Features
+
+#### Shelly Plus Uni Integration
+- **New Container**: Added dedicated `shelly` container for monitoring Shelly Plus Uni devices via BLE
+- **BLE RPC Protocol**: Implemented Shelly's JSON-RPC over BLE for reliable communication
+- **Generic Data Collection**: Monitors all available Shelly data points:
+  - Voltmeter readings (analog inputs)
+  - Switch states and power consumption
+  - Digital input states
+  - Device temperature
+  - System information (uptime, memory, storage)
+  - WiFi status and signal strength
+- **InfluxDB Compatibility**: Converts boolean values to integers (0/1) for proper storage
+
+#### Architecture Improvements
+- **Multi-Device Support**: Extended architecture to support multiple device types
+- **Shared Infrastructure**: Telegraf now monitors both SmartSolar and Shelly data
+- **Generic Field Names**: Shelly container uses generic field names for reusability:
+  - `voltmeter_100` instead of battery-specific names
+  - `switch_0_output`, `switch_1_output` instead of application-specific names
+  - Allows the same container to be used for different Shelly deployments
+
+#### Data Management
+- **NDJSON Format**: Consistent with SmartSolar, using daily rotating files
+- **30-Day Retention**: Automatic log rotation and cleanup
+- **Separate Data Paths**: `/data/shelly/` for Shelly, `/data/smartsolar-v1/` for SmartSolar
+
+### Improvements
+- **Test Organization**: Moved Shelly test scripts to `shelly/tests/` directory
+- **Documentation**: Added comprehensive roadmap for Shelly integration
+- **Error Handling**: Auto-restart after 10 consecutive failures for resilience
+
+### Technical Details
+- **Shelly BLE Service UUID**: `5f6d4f53-5f52-5043-5f53-56435f49445f`
+- **Configurable Scan Interval**: Default 30 seconds via `SHELLY_SCAN_INTERVAL`
+- **Python 3 Alpine**: Consistent base image across containers
+
 ## [0.1.1] - 2025-05-26
 
 ### Improvements

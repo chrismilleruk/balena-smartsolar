@@ -2,15 +2,23 @@ name: SmartSolar BLE Monitor
 type: sw.application
 description: >-
   Bluetooth Low Energy data collection from Victron SmartSolar charge controllers
-  with encrypted data decryption and web dashboard for monitoring solar charging metrics.
+  and Shelly Plus Uni devices. Features encrypted data decryption for Victron devices,
+  JSON-RPC over BLE for Shelly devices, and web dashboard for monitoring solar charging
+  metrics and battery voltages.
 joinable: false
 post-provisioning: >-
   ## Getting Started
   
+  ### For SmartSolar Monitoring:
   1. Access the web dashboard at `http://<device-ip>`
   2. Click "Manage Keys" to add your SmartSolar device encryption key
   3. Get your key from VictronConnect app: Settings → Product Info → Instant Readout Details
-  4. Data will be collected every 60 seconds and stored in daily JSON files
+  
+  ### For Shelly Monitoring:
+  1. Set the SHELLY_MAC environment variable to your Shelly device's MAC address
+  2. Data will be collected automatically via BLE
+  
+  Data is collected every 30-60 seconds and stored in daily NDJSON files.
   
   See the README for detailed instructions.
 assets:
@@ -30,6 +38,7 @@ data:
     - INFLUX_TOKEN
     - INFLUX_ORG
     - INFLUX_BUCKET: smart-solar
+    - SHELLY_MAC: 'A0:DD:6C:4B:9C:36'
   defaultDeviceType: raspberrypi0-wifi
   supportedDeviceTypes:
     - raspberrypi0-wifi
@@ -40,4 +49,4 @@ data:
     - raspberrypi4-64
     - raspberrypi400-64
     - raspberrypicm4-ioboard
-version: 0.1.1
+version: 0.2.0
