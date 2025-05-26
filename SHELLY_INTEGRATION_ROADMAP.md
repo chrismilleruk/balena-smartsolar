@@ -27,80 +27,77 @@ This document outlines the integration of a Shelly Plus Uni device into the bale
 
 ## Architecture Decision
 
-### Separate Container Approach ✅
-Create a dedicated `shelly` container separate from `smartsolar` because:
-- Different concerns (battery monitoring vs power management)
-- Clean separation of responsibilities
-- Easier maintenance and updates
-- Independent scaling/restart capabilities
+### Simplified Monitoring Architecture
 
-### Library Strategy
-- **Option A**: Use official Shelly BLE RPC script from GitHub
-  - Pros: Official support, full features, maintained by Shelly
-  - Cons: Not packaged, need to vendor or git submodule
-- **Option B**: Create minimal custom implementation
-  - Pros: Lightweight, only what we need
-  - Cons: Maintenance burden, missing features
+The Shelly device handles all scheduling and control logic natively through its scripting engine. The Python container serves purely as a monitoring and logging service - no control logic, just simple state observation and recording.
 
-**Recommendation**: Start with our working minimal implementation, consider official script if we need advanced features.
+### Container Strategy
 
-## Implementation Checklist
+Separate containers for clean separation of concerns:
+- **shelly** container: Monitors Shelly device via BLE, writes NDJSON
+- **smartsolar** container: Existing container for Victron monitoring
+- **telegraf** container: Reads all NDJSON files, sends to InfluxDB Cloud
+- **dashboard** container: Extended to display data from both sources
 
-### Phase 1: Basic Integration
+### Data Flow
+
+```
+Shelly Device (handles all scheduling/control logic)
+     ↓ BLE
+shelly container (simple monitoring only)
+     ↓ NDJSON
+/data/shelly/shelly_YYYY-MM-DD.ndjson
+     ↓
+Telegraf → InfluxDB Cloud
+
+SmartSolar → smartsolar container → /data/smartsolar/*.ndjson
+                                          ↓
+                                      Telegraf
+```
+
+## Implementation Plan (Simplified)
+
+### Phase 1: Minimum Viable Product (Required for Boat Installation)
+
+#### 1.1 Create Shelly Container
 - [ ] Create new `shelly` container structure
-  - [ ] Dockerfile based on Alpine/Python
+  - [ ] Copy patterns from existing `smartsolar` container
+  - [ ] Dockerfile based on Alpine/Python (same as smartsolar)
   - [ ] docker-compose.yml service definition
-  - [ ] Basic project structure
-- [ ] Move working BLE client code to new container
-- [ ] Implement periodic monitoring loop
-  - [ ] Read battery voltage every 30 seconds
+- [ ] Port working BLE client code (`shelly_ble_client.py`)
+- [ ] Implement monitoring loop (30-second intervals)
+  - [ ] Read battery voltage
   - [ ] Read switch states
-  - [ ] Monitor network status
-- [ ] Add MQTT publishing
-  - [ ] Publish battery voltage to `boat/battery2/voltage`
-  - [ ] Publish switch states to `boat/wifi/power`
-  - [ ] Publish device status/health
+  - [ ] Read device temperature
+- [ ] Add NDJSON logging using same pattern as smartsolar
+  - [ ] Use TimedRotatingFileHandler (daily rotation, 30 days retention)
+  - [ ] Write to `/data/shelly/shelly_YYYY-MM-DD.ndjson`
+  - [ ] Same format: `{"timestamp": "...", "battery2_voltage": 12.5, ...}`
 
-### Phase 2: Power Management Logic
-- [ ] Implement battery-based WiFi control
-  - [ ] Turn off WiFi when battery < threshold (e.g., 11.5V)
-  - [ ] Hysteresis to prevent rapid switching
-  - [ ] Manual override capability
-- [ ] Add time-based controls
-  - [ ] Schedule WiFi on/off times
-  - [ ] Respect battery priority over schedule
-- [ ] Implement graceful shutdown warnings
-  - [ ] MQTT notification before WiFi shutdown
-  - [ ] Countdown timer
+#### 1.2 Configure Shelly Device
+- [ ] Upload WiFi scheduling script to Shelly
+  - [ ] 5-minute windows every hour (12:00-22:00)
+  - [ ] Test schedule works correctly
+- [ ] Calibrate analog input for accurate battery voltage
+- [ ] Test manual override functionality
 
-### Phase 3: Advanced Features
-- [ ] Web API endpoints
-  - [ ] GET /status - Current state
-  - [ ] POST /wifi/power - Manual control
-  - [ ] GET /config - Current thresholds
-  - [ ] POST /config - Update thresholds
-- [ ] Historical data logging
-  - [ ] Store voltage readings
-  - [ ] Track power state changes
-  - [ ] Calculate WiFi uptime statistics
-- [ ] Integration with existing dashboard
-  - [ ] Add Battery 2 voltage display
-  - [ ] WiFi power control widget
-  - [ ] Status indicators
+#### 1.3 Update Existing Infrastructure
+- [ ] Configure Telegraf to monitor `/data/shelly/*.ndjson`
+- [ ] Extend existing dashboard to show:
+  - [ ] Battery 2 voltage gauge
+  - [ ] WiFi power state indicator
+  - [ ] Shelly device temperature
 
-### Phase 4: Reliability & Monitoring
-- [ ] Connection management
-  - [ ] Auto-reconnect on BLE failure
-  - [ ] Exponential backoff
-  - [ ] Connection status reporting
-- [ ] Error handling
-  - [ ] Graceful degradation
-  - [ ] Alert on communication failure
-  - [ ] Fallback to safe state
-- [ ] Health checks
-  - [ ] Liveness probe for container
-  - [ ] BLE connection health
-  - [ ] MQTT connection health
+#### 1.4 Testing Before Installation
+- [ ] 48-hour continuous operation test
+- [ ] Verify BLE connection stability
+- [ ] Confirm data flowing to InfluxDB Cloud
+- [ ] Test container auto-restart on failure
+
+### Phase 2: Future Enhancements (After Proven Stable)
+- SignalK integration (if needed for local displays)
+- Advanced error handling and connection management
+- Historical analysis features
 
 ## Technical Details
 
@@ -111,25 +108,15 @@ The Shelly Plus Uni uses a JSON-RPC protocol over BLE with:
 - Data: `5f6d4f53-5f52-5043-5f64-6174615f5f5f` (write request/read response)
 - RX Control: `5f6d4f53-5f52-5043-5f72-785f63746c5f` (read length)
 
-Protocol flow:
-1. Write request length (4 bytes, big-endian) to TX Control
-2. Write JSON-RPC request to Data characteristic
-3. Read response length from RX Control
-4. Read response data from Data characteristic
-
 ### Key RPC Methods
 - `Shelly.GetStatus` - Read all inputs/outputs/voltages
-- `Shelly.GetConfig` - Read configuration
-- `Switch.Set` - Control relay outputs
-- `Switch.Toggle` - Toggle relay state
+- `Switch.Set` - Control relay outputs (only for initial setup/testing)
 
-### MQTT Topics Structure
-```
-boat/shelly/status          # Online/offline status
-boat/shelly/battery2/voltage # Battery 2 voltage reading
-boat/shelly/wifi/power      # WiFi power state (on/off)
-boat/shelly/wifi/control    # Command topic for manual control
-boat/shelly/config/...      # Configuration parameters
+### NDJSON File Format
+Following the same pattern as smartsolar:
+```json
+{"timestamp": "2024-01-15T10:30:00Z", "battery2_voltage": 12.5, "wifi_power": true, "nav_power": false, "device_temp": 23.4}
+{"timestamp": "2024-01-15T10:30:30Z", "battery2_voltage": 12.4, "wifi_power": true, "nav_power": false, "device_temp": 23.5}
 ```
 
 ## Environment Variables
@@ -138,29 +125,22 @@ boat/shelly/config/...      # Configuration parameters
 SHELLY_MAC=A0:DD:6C:4B:9C:36
 SHELLY_SCAN_INTERVAL=30
 
-# Battery thresholds
-BATTERY_LOW_VOLTAGE=11.5
-BATTERY_RECOVERY_VOLTAGE=12.0
+# Data paths (following smartsolar pattern)
+DATA_PATH=/data/shelly
+LOG_PATH=/data/logs/shelly
 
-# MQTT configuration
-MQTT_BROKER=mqtt
-MQTT_PORT=1883
-MQTT_CLIENT_ID=shelly-monitor
-
-# WiFi control
-WIFI_AUTO_CONTROL=true
-WIFI_SCHEDULE_ENABLED=false
+# All scheduling is handled by Shelly device scripts
+# Python container only monitors and logs
 ```
 
-## Questions for Next Steps
-
-1. **Battery Voltage Calibration**: Do we need to calibrate the analog input reading?
-2. **Power Control Logic**: What should be the exact thresholds and hysteresis values?
-3. **Manual Override**: How long should manual overrides last before reverting to auto?
-4. **Integration Priority**: Which dashboard integration features are most important?
-5. **Backup Power**: Should we implement different behavior when on shore power?
+## Success Criteria for Installation
+- ✅ BLE connection stable over 48 hours
+- ✅ Battery voltage readings accurate (±0.1V)
+- ✅ Data flowing to InfluxDB Cloud
+- ✅ Shelly scheduling script working correctly
+- ✅ Container auto-restarts on failure
+- ✅ Dashboard showing Battery 2 voltage and WiFi state
 
 ## References
-- [Official Shelly BLE RPC Documentation](https://kb.shelly.cloud/knowledge-base/kbsa-mastering-shelly-iot-devices-a-comprehensive-)
-- [Shelly Plus Uni Manual](https://www.shelly.com/products/shelly-plus-uni)
-- Official GitHub: https://github.com/ALLTERCO/Utilities/tree/main/shelly-ble-rpc 
+- Working BLE client: `smartsolar/shelly-tests/shelly_ble_client.py`
+- SmartSolar patterns to copy: `smartsolar/main.py` 
