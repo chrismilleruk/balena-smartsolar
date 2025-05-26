@@ -17,7 +17,7 @@ assets:
   repository:
     type: blob.asset
     data:
-      url: 'https://github.com/your-username/balena-smartsolar'
+      url: 'https://github.com/chrismilleruk/balena-smartsolar'
   logo:
     type: blob.asset
     data:
@@ -26,6 +26,10 @@ assets:
 data:
   applicationEnvironmentVariables:
     - TZ: 'UTC'
+    - INFLUX_URL: https://us-east-1-1.aws.cloud2.influxdata.com
+    - INFLUX_TOKEN
+    - INFLUX_ORG
+    - INFLUX_BUCKET=victron-smart-solar
   defaultDeviceType: raspberrypi0-wifi
   supportedDeviceTypes:
     - raspberrypi0-wifi
@@ -36,4 +40,4 @@ data:
     - raspberrypi4-64
     - raspberrypi400-64
     - raspberrypicm4-ioboard
-version: 1.0.0 
+version: 0.1.0 

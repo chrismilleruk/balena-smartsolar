@@ -4,12 +4,14 @@ This project enables Bluetooth Low Energy (BLE) data collection from Victron Sma
 
 ## Features
 
-- 🔋 Real-time data collection from Victron SmartSolar devices
-- 🔐 Encrypted BLE data decryption
-- 📊 Web dashboard for data visualization
-- 📁 Daily rotating log files
-- 🔑 Secure key management (web UI or environment variables)
-- 🐛 Debug tools for troubleshooting
+- 🔋 Real-time battery monitoring (voltage, current, state of charge)
+- ☀️ Solar panel performance tracking (power, daily yield)
+- 📊 Historical data logging with daily JSON files
+- 🌐 Web dashboard for live monitoring
+- 🔐 Secure device pairing with encryption keys
+- 📱 Bluetooth Low Energy (BLE) communication
+- 🐳 Runs on Balena OS for easy deployment and management
+- ☁️ Automatic sync to InfluxDB Cloud with offline buffering
 
 ## Supported Devices
 
@@ -84,7 +86,7 @@ SSH into your device and create `/data/smartsolar-keys.json`:
 
 ### Data Files
 - Location: `/data/smartsolar-v1/`
-- Format: Daily JSON files (`data_YYYY-MM-DD.json`)
+- Format: Daily JSON files (`data_YYYY-MM-DD.ndjson`)
 - Contains: Timestamp, device info, and all solar metrics
 
 ### Available Metrics
@@ -96,6 +98,14 @@ SSH into your device and create `/data/smartsolar-keys.json`:
 - Charge state (OFF, BULK, ABSORPTION, FLOAT)
 - External load current (A)
 - Device temperature (°C)
+
+### Cloud Sync (Optional)
+
+The included Telegraf service can sync your data to InfluxDB Cloud:
+- Handles intermittent connectivity with persistent buffering
+- Automatically catches up after disconnections (up to 7 days)
+- Real-time streaming when connected (<5 minute lag)
+- See [telegraf/README.md](telegraf/README.md) for setup instructions
 
 ## Debugging
 
@@ -175,3 +185,14 @@ This project is provided "as-is" without warranty. It is not officially supporte
 
 - Built using the [victron-ble](https://github.com/keshavdv/victron-ble) library
 - Thanks to the Victron community for protocol documentation 
+
+## Roadmap
+
+- [x] Basic BLE data collection
+- [x] Web dashboard
+- [x] Encryption key management
+- [x] Export to InfluxDB Cloud
+- [ ] Multi-device support improvements
+- [ ] Historical data visualization
+- [ ] Alerts and notifications
+- [ ] Data export utilities 

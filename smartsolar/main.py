@@ -175,28 +175,17 @@ async def read_raw_characteristics(device):
         return None
 
 def save_data(data_entry):
-    """Save data entry to a daily JSON file."""
+    """Save data entry to a daily NDJSON file (one JSON object per line)."""
     try:
         date_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-        json_file = os.path.join(DATA_DIR, f"data_{date_str}.json")
+        json_file = os.path.join(DATA_DIR, f"data_{date_str}.ndjson")
         
-        # Read existing data if file exists
-        existing_data = []
-        if os.path.exists(json_file):
-            try:
-                with open(json_file, 'r') as f:
-                    existing_data = json.load(f)
-            except json.JSONDecodeError:
-                logger.warning(f"Could not read existing data from {json_file}")
+        # Append new data as a single line
+        with open(json_file, 'a') as f:
+            json.dump(data_entry, f, separators=(',', ':'))  # Compact JSON
+            f.write('\n')  # Newline delimiter
         
-        # Append new data
-        existing_data.append(data_entry)
-        
-        # Write back to file
-        with open(json_file, 'w') as f:
-            json.dump(existing_data, f, indent=2)
-        
-        logger.info(f"Data saved to {json_file}")
+        logger.info(f"Data appended to {json_file}")
     except Exception as e:
         logger.error(f"Error saving data: {str(e)}")
 

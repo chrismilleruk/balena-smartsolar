@@ -4,6 +4,7 @@ volumes:
   config: {}
   data: {}
   wheel-cache: {}
+  telegraf-state: {}
 
 services:
   # bluetooth:
@@ -32,4 +33,25 @@ services:
     labels:
       io.balena.features.dbus: '1'
       io.balena.features.kernel-modules: '1'
+  
+  telegraf:
+    build: ./telegraf
+    restart: always
+    environment:
+      # InfluxDB Cloud Configuration
+      - INFLUX_URL=${INFLUX_URL:-https://us-east-1-1.aws.cloud2.influxdata.com}
+      - INFLUX_TOKEN=${INFLUX_TOKEN}
+      - INFLUX_ORG=${INFLUX_ORG}
+      - INFLUX_BUCKET=${INFLUX_BUCKET:-smartsolar}
+      # Balena device name for hostname
+      # - BALENA_DEVICE_NAME_AT_INIT=${BALENA_DEVICE_NAME_AT_INIT:-smartsolar-device}
+    volumes:
+      # Read-only access to data files
+      - data:/data:ro
+      # Persistent state for Telegraf
+      - telegraf-state:/var/lib/telegraf
+    depends_on:
+      - smartsolar
+    labels:
+      io.balena.features.balena-api: '1'
   

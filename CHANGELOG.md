@@ -1,29 +1,45 @@
 # Changelog
 
-## [1.0.0] - 2024-12-19
+## [0.1.0] - 2024-12-20
 
-### Added
-- Created `key_manager.py` module with shared key management functions
-- Added comprehensive `README.md` with setup instructions and troubleshooting guide
-- Created `CHANGELOG.md` to track project changes
+### Initial Release
 
-### Changed
-- Renamed `victron_reader.py` to `debug_victron_reader.py` to clarify its purpose as a debug tool
-- Updated `main.py`, `dashboard.py`, and `debug_victron_reader.py` to use shared `key_manager` module
-- Improved code organization by extracting common functions
-- Modified `main.py` to use detection callback for proper BLE advertisement data capture
-- Updated to use timezone-aware datetime objects (replacing deprecated `utcnow()`)
-- Keys are now reloaded on each scan cycle (every 60 seconds) for dynamic updates
+#### Core Features
+- **BLE Data Collection**: Automatic discovery and data collection from Victron SmartSolar devices
+- **Encryption Support**: Decrypts Victron BLE advertisement data using device-specific keys
+- **Web Dashboard**: Real-time monitoring interface with key management
+- **Data Persistence**: NDJSON format daily log files with efficient append-only writes
 
-### Fixed
-- Fixed indentation issues in `main.py`
-- Removed duplicate key management code across multiple files
-- Fixed view switching issue in dashboard where keys section wasn't hidden when loading data
-- Fixed BLE advertisement data not being captured in main.py by switching to callback-based scanning
-- Added user feedback about key loading timing in the web UI
+#### Cloud Sync
+- **InfluxDB Cloud Integration**: Telegraf-based sync with intermittent connectivity support
+  - Persistent disk buffering (up to 500MB)
+  - Automatic catch-up after disconnections (up to 7 days)
+  - Real-time streaming with <5 minute lag when connected
+  - State tracking across container restarts
 
-### Documentation
-- Added detailed instructions for obtaining and configuring encryption keys
-- Documented three methods for key configuration (Web UI, Environment Variables, JSON file)
-- Added troubleshooting section for common issues
-- Included architecture overview and data export information 
+#### Key Management
+- Three configuration methods:
+  - Web UI interface
+  - Environment variables
+  - JSON configuration file
+- Dynamic key reloading without restart
+
+#### Data Formats
+- Supports both encrypted data (with parsed metrics) and raw characteristic readings
+- NDJSON format for efficient streaming and processing
+- Comprehensive metric collection including:
+  - Battery voltage and current
+  - Solar power and daily yield
+  - Charge state and errors
+  - Device temperature
+
+#### Developer Tools
+- Debug scripts for Bluetooth connectivity testing
+- Migration script for JSON to NDJSON conversion
+- Comprehensive logging with daily rotation
+
+#### Infrastructure
+- Docker-based deployment on BalenaOS
+- Persistent volumes for data and state
+- Health checks and automatic restarts
+- Support for Raspberry Pi Zero W and other Balena-supported devices
