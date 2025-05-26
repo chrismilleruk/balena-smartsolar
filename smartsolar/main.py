@@ -51,6 +51,30 @@ def setup_logging():
 
 logger = setup_logging()
 
+# Configurable timing via environment variables (after logger is available)
+def get_config():
+    """Load and validate configuration from environment variables."""
+    ble_scan_timeout = int(os.getenv('BLE_SCAN_TIMEOUT', '5'))
+    collection_interval = int(os.getenv('COLLECTION_INTERVAL', '60'))
+    
+    # Validate BLE scan timeout
+    if ble_scan_timeout < 1:
+        logger.warning(f"BLE_SCAN_TIMEOUT too low ({ble_scan_timeout}), setting to 1 second")
+        ble_scan_timeout = 1
+    elif ble_scan_timeout > 30:
+        logger.warning(f"BLE_SCAN_TIMEOUT too high ({ble_scan_timeout}), setting to 30 seconds")
+        ble_scan_timeout = 30
+    
+    # Validate collection interval
+    if collection_interval < 10:
+        logger.warning(f"COLLECTION_INTERVAL too low ({collection_interval}), setting to 10 seconds")
+        collection_interval = 10
+    
+    return ble_scan_timeout, collection_interval
+
+# Load configuration
+BLE_SCAN_TIMEOUT, COLLECTION_INTERVAL = get_config()
+
 # Device keys will be loaded dynamically
 DEVICE_KEYS = {}
 
@@ -80,11 +104,30 @@ async def scan_and_process_devices():
     discovered_devices = {}  # Clear previous discoveries
     
     logger.info("Scanning for Victron devices...")
-    scanner = BleakScanner(detection_callback=detection_callback)
     
-    # Scan for 10 seconds
+    # Create an event to signal when we've found a device
+    device_found = asyncio.Event()
+    
+    def detection_callback_with_stop(device, advertisement_data):
+        """Modified callback that signals when a device is found."""
+        detection_callback(device, advertisement_data)
+        # If we found a Victron device with data, signal to stop scanning
+        if discovered_devices:
+            device_found.set()
+    
+    scanner = BleakScanner(detection_callback=detection_callback_with_stop)
+    
+    # Start scanning
     await scanner.start()
-    await asyncio.sleep(10)
+    
+    try:
+        # Wait for either a device to be found or timeout
+        await asyncio.wait_for(device_found.wait(), timeout=BLE_SCAN_TIMEOUT)
+        logger.info(f"Device found early, stopping scan")
+    except asyncio.TimeoutError:
+        # No device found within timeout, that's OK
+        logger.debug(f"Scan timeout after {BLE_SCAN_TIMEOUT}s")
+    
     await scanner.stop()
     
     logger.info(f"Scan complete. Found {len(discovered_devices)} Victron device(s)")
@@ -140,8 +183,6 @@ async def scan_and_process_devices():
         # Save the data
         save_data(data_entry)
 
-
-
 async def read_raw_characteristics(device):
     """Read raw characteristics from the device."""
     try:
@@ -192,9 +233,13 @@ def save_data(data_entry):
 async def main():
     logger.info(f"Starting SmartSolar data collection service {VERSION}")
     logger.info(f"Data files will be stored in {DATA_DIR}")
+    logger.info(f"Collection interval: {COLLECTION_INTERVAL}s, BLE scan timeout: {BLE_SCAN_TIMEOUT}s")
     
     while True:
         try:
+            # Record start time
+            cycle_start = asyncio.get_event_loop().time()
+            
             # Reload device keys on each cycle to pick up changes
             global DEVICE_KEYS
             DEVICE_KEYS = load_device_keys()
@@ -209,8 +254,17 @@ async def main():
             # Scan and process devices
             await scan_and_process_devices()
             
-            # Wait before next attempt
-            await asyncio.sleep(60)  # Adjust this value based on your needs
+            # Calculate how long this cycle took
+            cycle_duration = asyncio.get_event_loop().time() - cycle_start
+            
+            # Calculate remaining time to maintain target interval
+            sleep_time = max(0, COLLECTION_INTERVAL - cycle_duration)
+            
+            if sleep_time > 0:
+                logger.debug(f"Cycle took {cycle_duration:.1f}s, sleeping for {sleep_time:.1f}s")
+                await asyncio.sleep(sleep_time)
+            else:
+                logger.warning(f"Cycle took {cycle_duration:.1f}s, which exceeds target interval of {COLLECTION_INTERVAL}s")
             
         except Exception as e:
             logger.error(f"Main loop error: {str(e)}")

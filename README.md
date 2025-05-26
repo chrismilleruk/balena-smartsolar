@@ -159,9 +159,11 @@ smartsolar/
 
 ## Environment Variables
 
-- `SMARTSOLAR_KEY_<MAC>`: Device encryption key (MAC with underscores)
+- `SMARTSOLAR_KEY_<MAC>`: (Optional) Device encryption key (MAC with underscores)
 - `SMARTSOLAR_TARGET_DEVICE`: (Optional) Target specific device for debugging
-- `TZ`: Timezone (default: UTC)
+- `BLE_SCAN_TIMEOUT`: (Optional) Maximum seconds to scan for BLE device (1-30, default: 5)
+- `COLLECTION_INTERVAL`: (Optional) Seconds between data collections (min: 10, default: 60)
+- `TZ`: (Optional) Timezone (default: UTC)
 
 ## Data Export
 

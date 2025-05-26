@@ -29,7 +29,7 @@ data:
     - INFLUX_URL: https://us-east-1-1.aws.cloud2.influxdata.com
     - INFLUX_TOKEN
     - INFLUX_ORG
-    - INFLUX_BUCKET=victron-smart-solar
+    - INFLUX_BUCKET: smart-solar
   defaultDeviceType: raspberrypi0-wifi
   supportedDeviceTypes:
     - raspberrypi0-wifi
@@ -40,4 +40,4 @@ data:
     - raspberrypi4-64
     - raspberrypi400-64
     - raspberrypicm4-ioboard
-version: 0.1.0 
+version: 0.1.1

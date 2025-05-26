@@ -21,14 +21,12 @@ RUN mkdir -p /var/lib/telegraf/buffer \
     && mkdir -p /var/lib/telegraf/file_state \
     && chown -R telegraf:telegraf /var/lib/telegraf
 
-# Copy configuration
+# Copy configuration and start script
 COPY telegraf.conf /etc/telegraf/telegraf.conf
+COPY start-telegraf.sh /usr/local/bin/start-telegraf.sh
+RUN chmod +x /usr/local/bin/start-telegraf.sh
 
 # Use telegraf user
 USER telegraf
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
-  CMD telegraf --test || exit 1
-
-ENTRYPOINT ["/usr/bin/telegraf"] 
+ENTRYPOINT ["/usr/local/bin/start-telegraf.sh"] 

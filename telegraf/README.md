@@ -119,6 +119,17 @@ The system maintains three types of state:
 
 This ensures no data loss even with extended disconnections or device restarts.
 
+## Development and Testing
+
+The `dev/` directory contains tools for testing the Telegraf configuration locally before deployment:
+
+```bash
+cd telegraf/dev
+./test-config.sh  # Validates the configuration
+```
+
+See [dev/README.md](dev/README.md) for detailed testing instructions.
+
 ## ARM v6 Support (Raspberry Pi Zero W)
 
 The standard Telegraf Docker image doesn't support ARM v6 architecture. For Raspberry Pi Zero W, you have three options:

@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.1.1] - 2025-05-26
+
+### Improvements
+
+#### Data Collection Timing
+- **Adaptive BLE Scanning**: Scan stops immediately when device is found (previously fixed 10s)
+- **Configurable Intervals**: New environment variables for timing control:
+  - `BLE_SCAN_TIMEOUT`: Maximum scan duration (1-30s, default: 5s)
+  - `COLLECTION_INTERVAL`: Time between collections (min: 10s, default: 60s)
+- **Consistent Timing**: Dynamic sleep adjustment maintains regular intervals
+- **Reduced Latency**: Typical scan time reduced from 10s to 1-2s
+
+#### Reliability Enhancements
+- **Internet Outage Handling**: Improved documentation and testing of offline scenarios
+- **Power Loss Recovery**: Verified data persistence across power cycles
+- **State Persistence**: Telegraf maintains file positions through restarts
+- **Buffer Management**: Clear understanding of 10,000 metric memory buffer (~83 hours)
+
+#### Configuration
+- **Environment Variables**: All timing parameters now configurable without code changes
+- **Validation**: Safe bounds checking for all configurable parameters
+- **Logging**: Added timing debug information for monitoring collection cycles
+
+### Documentation
+- Added detailed explanation of outage recovery behavior
+- Documented Telegraf retry configuration options
+- Updated README with new environment variables
+
 ## [0.1.0] - 2024-12-20
 
 ### Initial Release

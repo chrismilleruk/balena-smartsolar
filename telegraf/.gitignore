@@ -1,0 +1,7 @@
+# Development artifacts
+dev/telegraf
+dev/*.tar.gz
+
+# Test outputs
+*.log
+*.out 
