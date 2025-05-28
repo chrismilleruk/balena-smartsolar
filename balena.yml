@@ -35,10 +35,10 @@ data:
   applicationEnvironmentVariables:
     - TZ: 'UTC'
     - INFLUX_URL: https://us-east-1-1.aws.cloud2.influxdata.com
-    - INFLUX_TOKEN
-    - INFLUX_ORG
+    - INFLUX_TOKEN: ''  # Set your InfluxDB Cloud token here
+    - INFLUX_ORG: ''    # Set your InfluxDB Cloud organization here
     - INFLUX_BUCKET: smart-solar
-    - SHELLY_MAC: 'A0:DD:6C:4B:9C:36'
+    - SHELLY_MAC: ''    # Set your Shelly device MAC address here (e.g., A0:DD:6C:4B:9C:36)
   defaultDeviceType: raspberrypi0-wifi
   supportedDeviceTypes:
     - raspberrypi0-wifi
@@ -49,4 +49,4 @@ data:
     - raspberrypi4-64
     - raspberrypi400-64
     - raspberrypicm4-ioboard
-version: 0.2.1
+version: 0.2.2

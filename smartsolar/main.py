@@ -90,7 +90,7 @@ def detection_callback(device, advertisement_data):
         if advertisement_data.manufacturer_data:
             for mfr_id, data in advertisement_data.manufacturer_data.items():
                 if mfr_id == 737:  # Victron manufacturer ID (0x02E1)
-                    logger.info(f"Found Victron manufacturer data for {device.address}")
+                    logger.debug(f"Found Victron manufacturer data for {device.address}")
                     discovered_devices[device.address] = {
                         'device': device,
                         'victron_data': data,
@@ -103,7 +103,7 @@ async def scan_and_process_devices():
     global discovered_devices
     discovered_devices = {}  # Clear previous discoveries
     
-    logger.info("Scanning for Victron devices...")
+    logger.debug("Scanning for Victron devices...")
     
     # Create an event to signal when we've found a device
     device_found = asyncio.Event()
@@ -123,14 +123,14 @@ async def scan_and_process_devices():
     try:
         # Wait for either a device to be found or timeout
         await asyncio.wait_for(device_found.wait(), timeout=BLE_SCAN_TIMEOUT)
-        logger.info(f"Device found early, stopping scan")
+        logger.debug(f"Device found early, stopping scan")
     except asyncio.TimeoutError:
         # No device found within timeout, that's OK
         logger.debug(f"Scan timeout after {BLE_SCAN_TIMEOUT}s")
     
     await scanner.stop()
     
-    logger.info(f"Scan complete. Found {len(discovered_devices)} Victron device(s)")
+    logger.debug(f"Scan complete. Found {len(discovered_devices)} Victron device(s)")
     
     # Process discovered devices
     for address, device_info in discovered_devices.items():
@@ -147,7 +147,7 @@ async def scan_and_process_devices():
         }
         
         if encryption_key:
-            logger.info(f"Processing {device.name} ({address}) with encryption key")
+            logger.debug(f"Processing {device.name} ({address}) with encryption key")
             try:
                 # Detect device type and parse data
                 parser_class = detect_device_type(victron_data)
@@ -158,7 +158,7 @@ async def scan_and_process_devices():
                     # Convert to dictionary using shared function
                     parsed_dict = parse_victron_data(parsed)
                     
-                    logger.info(f"Parsed Victron data: {parsed_dict}")
+                    logger.debug(f"Parsed Victron data: {parsed_dict}")
                     data_entry["parsed_data"] = parsed_dict
                     data_entry["raw_data"] = victron_data.hex()
                 else:
@@ -221,19 +221,26 @@ def save_data(data_entry):
         date_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
         json_file = os.path.join(DATA_DIR, f"data_{date_str}.ndjson")
         
+        # Flatten the data structure - move parsed_data fields to top level
+        if "parsed_data" in data_entry:
+            parsed = data_entry.pop("parsed_data")
+            # Add each field directly to the data entry
+            for key, value in parsed.items():
+                data_entry[key] = value
+        
         # Append new data as a single line
         with open(json_file, 'a') as f:
             json.dump(data_entry, f, separators=(',', ':'))  # Compact JSON
             f.write('\n')  # Newline delimiter
         
-        logger.info(f"Data appended to {json_file}")
+        logger.info(f"Data saved: {data_entry.get('device_name', 'Unknown')} - Battery: {data_entry.get('battery_voltage', 'N/A')}V, Solar: {data_entry.get('solar_power', 'N/A')}W")
     except Exception as e:
         logger.error(f"Error saving data: {str(e)}")
 
 async def main():
     logger.info(f"Starting SmartSolar data collection service {VERSION}")
     logger.info(f"Data files will be stored in {DATA_DIR}")
-    logger.info(f"Collection interval: {COLLECTION_INTERVAL}s, BLE scan timeout: {BLE_SCAN_TIMEOUT}s")
+    logger.debug(f"Collection interval: {COLLECTION_INTERVAL}s, BLE scan timeout: {BLE_SCAN_TIMEOUT}s")
     
     while True:
         try:
@@ -245,7 +252,7 @@ async def main():
             DEVICE_KEYS = load_device_keys()
             
             if DEVICE_KEYS:
-                logger.info(f"Configured with {len(DEVICE_KEYS)} device key(s)")
+                logger.debug(f"Configured with {len(DEVICE_KEYS)} device key(s)")
             else:
                 logger.warning("No device encryption keys configured!")
                 logger.warning("Add your device key via the web UI or environment variables")

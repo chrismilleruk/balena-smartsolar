@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.2.2] - 2025-01-16
+
+### Production Ready
+
+#### Successful Testing
+- **24-Hour Stability Test**: Completed successfully with both SmartSolar and Shelly devices
+- **Fixed 2am Logging Issue**: Resolved issue where logging would stop in early morning hours
+- **InfluxDB Cloud Integration**: Confirmed working with Grafana dashboard visualization
+
+#### WiFi Power Management
+- **Implemented Schedule**: 
+  - Daytime: 5 minutes every 2 hours
+  - Nighttime: 5 minutes every 4 hours
+  - Reduces power consumption while maintaining data sync
+- **Shelly Script**: Successfully controlling WiFi power via relay
+
+#### Dashboard
+- **Grafana Integration**: Full monitoring dashboard showing:
+  - Solar power generation and battery charging
+  - Shelly switch states
+  - WiFi connectivity windows (RSSI graph)
+  - Current flows and yields
+
+### Ready for Deployment
+- System proven stable over extended testing period
+- All components communicating reliably via BLE
+- Data pipeline to cloud fully operational
+
 ## [0.2.1] - 2025-05-28
 
 ### Improvements

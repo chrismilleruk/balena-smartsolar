@@ -97,7 +97,7 @@ class ShellyBLEClient:
             # Try to connect with retries
             for attempt in range(3):
                 try:
-                    logger.info(f"Attempting to connect to {self.mac_address} (attempt {attempt + 1}/3)")
+                    logger.debug(f"Attempting to connect to {self.mac_address} (attempt {attempt + 1}/3)")
                     
                     # First, scan to ensure device is available
                     device = await BleakScanner.find_device_by_address(
@@ -117,7 +117,7 @@ class ShellyBLEClient:
                     await self._client.connect(timeout=timeout)
                     
                     if self._client.is_connected:
-                        logger.info(f"Successfully connected to {self.mac_address}")
+                        logger.debug(f"Successfully connected to {self.mac_address}")
                         return self._client
                     else:
                         raise Exception("Connection failed - client not connected")
@@ -262,7 +262,7 @@ async def collect_shelly_data():
             voltmeter = result["voltmeter:100"]
             if "voltage" in voltmeter:
                 data_entry["voltmeter_100"] = voltmeter["voltage"]
-                logger.info(f"Voltmeter 100: {voltmeter['voltage']}V")
+                logger.debug(f"Voltmeter 100: {voltmeter['voltage']}V")
         
         # Switch states (generic - convert boolean to int for InfluxDB)
         if "switch:0" in result:
@@ -276,7 +276,7 @@ async def collect_shelly_data():
                 data_entry["switch_0_voltage"] = switch0["voltage"]
             if "current" in switch0:
                 data_entry["switch_0_current"] = switch0["current"]
-            logger.info(f"Switch 0: {'ON' if output_state else 'OFF'}")
+            logger.debug(f"Switch 0: {'ON' if output_state else 'OFF'}")
         
         if "switch:1" in result:
             switch1 = result["switch:1"]
@@ -288,7 +288,7 @@ async def collect_shelly_data():
                 data_entry["switch_1_voltage"] = switch1["voltage"]
             if "current" in switch1:
                 data_entry["switch_1_current"] = switch1["current"]
-            logger.info(f"Switch 1: {'ON' if output_state else 'OFF'}")
+            logger.debug(f"Switch 1: {'ON' if output_state else 'OFF'}")
         
         # Input states (generic digital inputs)
         if "input:0" in result:
@@ -312,7 +312,7 @@ async def collect_shelly_data():
             temp = result["temperature:0"]
             if "tC" in temp:
                 data_entry["device_temp_c"] = temp["tC"]
-                logger.info(f"Device temperature: {temp['tC']}°C")
+                logger.debug(f"Device temperature: {temp['tC']}°C")
             if "tF" in temp:
                 data_entry["device_temp_f"] = temp["tF"]
         
@@ -345,6 +345,14 @@ async def collect_shelly_data():
             ble = result["ble"]
             data_entry["ble_enabled"] = 1 if ble.get("enable", False) else 0
         
+        # Log a summary of the collected data
+        voltage = data_entry.get("voltmeter_100", "N/A")
+        switch0 = "ON" if data_entry.get("switch_0_output", 0) else "OFF"
+        switch1 = "ON" if data_entry.get("switch_1_output", 0) else "OFF"
+        temp = data_entry.get("device_temp_c", "N/A")
+        
+        logger.info(f"Data collected: Voltage: {voltage}V, Switch0: {switch0}, Switch1: {switch1}, Temp: {temp}°C")
+        
         return data_entry
         
     except Exception as e:
@@ -370,10 +378,10 @@ def save_data(data_entry):
 
 async def main():
     logger.info(f"Starting Shelly monitoring service {VERSION}")
-    logger.info(f"Monitoring Shelly device: {SHELLY_MAC}")
-    logger.info(f"Scan interval: {SCAN_INTERVAL}s")
-    logger.info(f"Data files will be stored in {DATA_DIR}")
-    logger.info(f"Log files will be stored in {LOG_DIR}")
+    logger.info(f"Monitoring device: {SHELLY_MAC}")
+    logger.debug(f"Scan interval: {SCAN_INTERVAL}s")
+    logger.debug(f"Data files: {DATA_DIR}")
+    logger.debug(f"Log files: {LOG_DIR}")
     
     # Initial delay to let system settle
     await asyncio.sleep(5)
