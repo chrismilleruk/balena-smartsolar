@@ -1,5 +1,37 @@
 # Changelog
 
+## [0.2.1] - 2025-05-28
+
+### Improvements
+
+#### Shelly Bluetooth Reliability
+- **Enhanced Connection Management**: 
+  - Persistent BLE client with automatic reconnection
+  - Connection state tracking and reuse for efficiency
+  - Device scanning before connection attempts
+  - 3 retry attempts with 2-second delays
+- **Improved Error Handling**:
+  - Exponential backoff for failures (5s to 5min max)
+  - Graceful degradation without service exit
+  - Specific handling for Bluetooth disconnection errors
+  - Comprehensive error logging with context
+- **Service Resilience**:
+  - Removed hard exit on failures - service continues retrying
+  - Better cleanup on shutdown (SIGINT handling)
+  - Connection pooling to reduce BLE overhead
+
+#### Diagnostic Tools
+- **Container Diagnostics**:
+  - `shelly/tests/diagnose_bluetooth.sh`: Comprehensive Bluetooth and service diagnostics
+  - Run inside container after SSH access
+  - Checks adapter status, processes, logs, and data collection
+  - System resource monitoring
+
+### Bug Fixes
+- Fixed service stopping after "failed to discover services" error
+- Resolved connection leak issues with proper cleanup
+- Improved handling of device unavailability
+
 ## [0.2.0] - 2025-05-26
 
 ### New Features

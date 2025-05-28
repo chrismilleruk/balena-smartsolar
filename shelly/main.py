@@ -15,6 +15,7 @@ from datetime import datetime, timezone
 import os
 import sys
 from bleak import BleakClient, BleakScanner
+from bleak.exc import BleakError
 
 # Constants
 VERSION = "v1"
@@ -76,7 +77,68 @@ class ShellyBLEClient:
     
     def __init__(self, mac_address: str):
         self.mac_address = mac_address
+        self._client = None
+        self._lock = asyncio.Lock()
         
+    async def ensure_connected(self, timeout: float = 10.0) -> BleakClient:
+        """Ensure we have a connected client, reconnecting if necessary"""
+        async with self._lock:
+            if self._client and self._client.is_connected:
+                return self._client
+                
+            # Disconnect existing client if any
+            if self._client:
+                try:
+                    await self._client.disconnect()
+                except Exception:
+                    pass
+                self._client = None
+            
+            # Try to connect with retries
+            for attempt in range(3):
+                try:
+                    logger.info(f"Attempting to connect to {self.mac_address} (attempt {attempt + 1}/3)")
+                    
+                    # First, scan to ensure device is available
+                    device = await BleakScanner.find_device_by_address(
+                        self.mac_address,
+                        timeout=timeout
+                    )
+                    
+                    if not device:
+                        logger.warning(f"Device {self.mac_address} not found during scan")
+                        if attempt < 2:
+                            await asyncio.sleep(2)
+                            continue
+                        raise Exception(f"Device {self.mac_address} not found after scanning")
+                    
+                    # Connect to the device
+                    self._client = BleakClient(device)
+                    await self._client.connect(timeout=timeout)
+                    
+                    if self._client.is_connected:
+                        logger.info(f"Successfully connected to {self.mac_address}")
+                        return self._client
+                    else:
+                        raise Exception("Connection failed - client not connected")
+                        
+                except Exception as e:
+                    logger.warning(f"Connection attempt {attempt + 1} failed: {e}")
+                    if attempt < 2:
+                        await asyncio.sleep(2)
+                    else:
+                        raise
+                        
+    async def disconnect(self):
+        """Disconnect the client"""
+        async with self._lock:
+            if self._client:
+                try:
+                    await self._client.disconnect()
+                except Exception:
+                    pass
+                self._client = None
+                
     async def call_rpc(
         self,
         method: str,
@@ -85,12 +147,9 @@ class ShellyBLEClient:
     ) -> Dict[str, Any]:
         """Execute an RPC call to the Shelly device"""
         
-        async with BleakClient(self.mac_address) as client:
-            if not client.is_connected:
-                raise Exception(f"Failed to connect to {self.mac_address}")
-                
-            logger.debug(f"Connected to {self.mac_address}")
-            
+        client = await self.ensure_connected()
+        
+        try:
             # Get the Shelly service
             services = client.services
             shelly_service = services.get_service(SHELLY_SERVICE_UUID)
@@ -158,15 +217,33 @@ class ShellyBLEClient:
                 raise Exception(f"RPC Error: {response['error']}")
                 
             return response
+            
+        except BleakError as e:
+            # Bluetooth-specific errors - mark client as disconnected
+            logger.error(f"Bluetooth error during RPC call: {e}")
+            await self.disconnect()
+            raise
+        except Exception as e:
+            # Other errors - also disconnect to be safe
+            logger.error(f"Error during RPC call: {e}")
+            await self.disconnect()
+            raise
+
+
+# Global client instance
+shelly_client = None
 
 
 async def collect_shelly_data():
     """Collect data from Shelly device"""
-    client = ShellyBLEClient(SHELLY_MAC)
+    global shelly_client
+    
+    if not shelly_client:
+        shelly_client = ShellyBLEClient(SHELLY_MAC)
     
     try:
         # Get device status
-        status = await client.call_rpc("Shelly.GetStatus")
+        status = await shelly_client.call_rpc("Shelly.GetStatus")
         
         if "result" not in status:
             logger.error("No result in status response")
@@ -303,6 +380,8 @@ async def main():
     
     consecutive_failures = 0
     max_consecutive_failures = 10
+    backoff_delay = 5  # Initial backoff delay in seconds
+    max_backoff_delay = 300  # Maximum backoff delay (5 minutes)
     
     while True:
         try:
@@ -315,13 +394,23 @@ async def main():
             if data:
                 save_data(data)
                 consecutive_failures = 0  # Reset failure counter on success
+                backoff_delay = 5  # Reset backoff delay
             else:
                 consecutive_failures += 1
                 logger.warning(f"Failed to collect data (attempt {consecutive_failures}/{max_consecutive_failures})")
                 
                 if consecutive_failures >= max_consecutive_failures:
-                    logger.error(f"Too many consecutive failures ({consecutive_failures}), exiting to trigger restart")
-                    sys.exit(1)
+                    logger.error(f"Too many consecutive failures ({consecutive_failures}), will continue retrying with backoff")
+                    # Don't exit, just use maximum backoff
+                    await asyncio.sleep(max_backoff_delay)
+                    consecutive_failures = 0  # Reset counter but keep trying
+                    continue
+                else:
+                    # Exponential backoff for retries
+                    current_backoff = min(backoff_delay * (2 ** (consecutive_failures - 1)), max_backoff_delay)
+                    logger.info(f"Waiting {current_backoff}s before retry...")
+                    await asyncio.sleep(current_backoff)
+                    continue
             
             # Calculate how long this cycle took
             cycle_duration = asyncio.get_event_loop().time() - cycle_start
@@ -335,16 +424,27 @@ async def main():
             else:
                 logger.warning(f"Cycle took {cycle_duration:.1f}s, which exceeds target interval of {SCAN_INTERVAL}s")
                 
+        except KeyboardInterrupt:
+            logger.info("Received interrupt signal, shutting down gracefully...")
+            if shelly_client:
+                await shelly_client.disconnect()
+            break
         except Exception as e:
             logger.error(f"Main loop error: {str(e)}", exc_info=True)
             consecutive_failures += 1
             
-            if consecutive_failures >= max_consecutive_failures:
-                logger.error(f"Too many consecutive failures ({consecutive_failures}), exiting to trigger restart")
-                sys.exit(1)
-                
-            await asyncio.sleep(10)
+            # Exponential backoff for unexpected errors
+            current_backoff = min(backoff_delay * (2 ** (consecutive_failures - 1)), max_backoff_delay)
+            logger.info(f"Waiting {current_backoff}s before retry...")
+            await asyncio.sleep(current_backoff)
 
 
 if __name__ == "__main__":
-    asyncio.run(main()) 
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        logger.info("Service stopped by user")
+        sys.exit(0)
+    except Exception as e:
+        logger.error(f"Fatal error: {e}", exc_info=True)
+        sys.exit(1) 
