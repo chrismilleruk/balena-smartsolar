@@ -24,7 +24,8 @@ RUN mkdir -p /var/lib/telegraf/buffer \
 # Copy configuration and start script
 COPY telegraf.conf /etc/telegraf/telegraf.conf
 COPY start-telegraf.sh /usr/local/bin/start-telegraf.sh
-RUN chmod +x /usr/local/bin/start-telegraf.sh
+COPY system-stats.sh /usr/local/bin/system-stats.sh
+RUN chmod +x /usr/local/bin/start-telegraf.sh /usr/local/bin/system-stats.sh
 
 # Use telegraf user
 USER telegraf
