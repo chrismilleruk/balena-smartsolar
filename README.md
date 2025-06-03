@@ -141,6 +141,20 @@ smartsolar/
 └── start.sh               # Service startup script
 ```
 
+## Services
+
+### SmartSolar
+Collects data from Victron SmartSolar charge controllers via Bluetooth Low Energy (BLE). Stores data locally and provides a web dashboard.
+
+### Shelly
+Monitors Shelly energy monitoring devices via Bluetooth, collecting power consumption and energy usage data.
+
+### Telegraf
+Syncs collected data to InfluxDB Cloud with offline buffering capabilities. Handles intermittent connectivity gracefully.
+
+### Cloudflared (Optional)
+Provides secure remote access to your services via Cloudflare Tunnel without opening ports on your network. Uses the `erisamoe/cloudflared` image for ARMv6 compatibility with Raspberry Pi Zero W. See [cloudflared/README.md](cloudflared/README.md) for setup instructions.
+
 ## Troubleshooting
 
 ### "No Victron devices found"

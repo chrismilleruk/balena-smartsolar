@@ -78,3 +78,12 @@ services:
     labels:
       io.balena.features.balena-api: '1'
   
+  cloudflared:
+    image: erisamoe/cloudflared:latest
+    restart: always
+    environment:
+      # Cloudflare tunnel token (set in Balena device variables)
+      - TUNNEL_TOKEN
+    network_mode: host
+    command: tunnel run
+  
