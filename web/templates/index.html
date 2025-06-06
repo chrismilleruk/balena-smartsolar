@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Marine Services - Connectivity Check</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Marine Services</h1>
+            <p class="network-status">
+                Network: <span class="network-type">{{ 'Local Boat Network' if is_local else 'Remote (VPN/Internet)' }}</span>
+            </p>
+        </header>
+
+        <div class="services-grid">
+            {% for service in services %}
+            <div class="service-card" data-service="{{ service.name }}">
+                <a href="{{ service.url }}" target="_blank" class="service-link">
+                    <h2>{{ service.name }}</h2>
+                    <div class="qr-container">
+                        <img src="data:image/png;base64,{{ service.qr_code }}" alt="QR Code for {{ service.name }}" class="qr-code">
+                    </div>
+                    <div class="url">{{ service.url }}</div>
+                    <div class="status-indicator">
+                        <span class="status-dot"></span>
+                        <span class="status-text">Checking...</span>
+                    </div>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="refresh-container">
+            <button id="refresh-btn" class="refresh-button">Check All Connections</button>
+            <div class="last-check">Last check: <span id="last-check-time">Never</span></div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html> 

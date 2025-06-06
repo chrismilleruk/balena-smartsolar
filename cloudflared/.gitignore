@@ -1,0 +1,8 @@
+# Config files that might contain sensitive data
+config.yml
+config.yaml
+*.pem
+*.key
+
+# Logs
+*.log 

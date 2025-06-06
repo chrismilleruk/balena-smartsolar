@@ -78,11 +78,12 @@ SSH into your device and create `/data/smartsolar-keys.json`:
 ## Data Access
 
 ### Web Dashboard
-- URL: `http://<device-ip>`
+- URL: `http://<device-ip>/smartsolar`
 - Features:
   - Real-time data display
   - Historical data viewing
   - Key management interface
+- Note: The SmartSolar dashboard is now integrated into the main web interface
 
 ### Data Files
 - Location: `/data/smartsolar-v1/`

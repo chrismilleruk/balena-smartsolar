@@ -49,4 +49,4 @@ data:
     - raspberrypi4-64
     - raspberrypi400-64
     - raspberrypicm4-ioboard
-version: 0.2.2
+version: 0.2.3

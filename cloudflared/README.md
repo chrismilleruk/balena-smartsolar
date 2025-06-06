@@ -49,7 +49,7 @@ After the tunnel is running, configure routes in the Cloudflare dashboard:
 1. Go to your tunnel in the Zero Trust dashboard
 2. Click "Configure"
 3. Add public hostname routes, for example:
-   - `smartsolar.yourdomain.com` → `http://localhost:80` (for the SmartSolar web dashboard)
+   - `smartsolar.yourdomain.com` → `http://localhost:8081` (for the SmartSolar web dashboard)
    - `metrics.yourdomain.com` → `http://localhost:49312` (for Telegraf metrics)
 
 Note: Since we're using `network_mode: host`, services are accessible via localhost.

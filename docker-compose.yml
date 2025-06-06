@@ -7,15 +7,6 @@ volumes:
   telegraf-state: {}
 
 services:
-  # bluetooth:
-  #   image: bh.cr/balenalabs/bluetooth-rpi
-  #   labels:
-  #     io.balena.features.dbus: '1'
-  #   cap_add:
-  #     - NET_ADMIN
-  #   restart: on-failure
-  #   network_mode: host
-
   smartsolar:
     build: ./smartsolar
     # depends_on:
@@ -86,4 +77,14 @@ services:
       - TUNNEL_TOKEN
     network_mode: host
     command: tunnel run
+  
+  web:
+    build: ./web
+    restart: always
+    ports:
+      - "80:8080"
+    environment:
+      - TZ=UTC
+    volumes:
+      - data:/data:ro  # Read-only access to data files
   

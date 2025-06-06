@@ -1,4 +1,4 @@
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, send_from_directory
 import json
 import os
 from datetime import datetime, timedelta
@@ -17,14 +17,23 @@ def index():
     """Main dashboard page."""
     return render_template('index.html')
 
+@app.route('/favicon.ico')
+def favicon():
+    """Return a 204 No Content for favicon requests."""
+    return '', 204
+
 @app.route('/api/data/<date>')
 def get_data(date):
     """Get data for a specific date."""
     try:
-        json_file = os.path.join(DATA_DIR, f"data_{date}.json")
-        if os.path.exists(json_file):
-            with open(json_file, 'r') as f:
-                data = json.load(f)
+        ndjson_file = os.path.join(DATA_DIR, f"data_{date}.ndjson")
+        if os.path.exists(ndjson_file):
+            data = []
+            with open(ndjson_file, 'r') as f:
+                for line in f:
+                    line = line.strip()
+                    if line:
+                        data.append(json.loads(line))
             return jsonify(data)
         else:
             return jsonify([]), 404
@@ -35,11 +44,11 @@ def get_data(date):
 def get_available_dates():
     """Get list of dates with available data."""
     try:
-        files = glob.glob(os.path.join(DATA_DIR, "data_*.json"))
+        files = glob.glob(os.path.join(DATA_DIR, "data_*.ndjson"))
         dates = []
         for file in files:
             filename = os.path.basename(file)
-            date = filename.replace("data_", "").replace(".json", "")
+            date = filename.replace("data_", "").replace(".ndjson", "")
             dates.append(date)
         dates.sort(reverse=True)
         return jsonify(dates)
@@ -50,18 +59,23 @@ def get_available_dates():
 def get_latest_data():
     """Get the most recent data entry."""
     try:
-        files = glob.glob(os.path.join(DATA_DIR, "data_*.json"))
+        files = glob.glob(os.path.join(DATA_DIR, "data_*.ndjson"))
         if not files:
             return jsonify({"message": "No data available"}), 404
         
         # Get the most recent file
         latest_file = max(files, key=os.path.getctime)
         
+        # Read the last line of the file
+        last_entry = None
         with open(latest_file, 'r') as f:
-            data = json.load(f)
+            for line in f:
+                line = line.strip()
+                if line:
+                    last_entry = json.loads(line)
         
-        if data:
-            return jsonify(data[-1])  # Return last entry
+        if last_entry:
+            return jsonify(last_entry)
         else:
             return jsonify({"message": "No data in file"}), 404
     except Exception as e:
@@ -72,16 +86,22 @@ def tail_data(n=10):
     """Get the last n data entries across all files."""
     try:
         all_data = []
-        files = glob.glob(os.path.join(DATA_DIR, "data_*.json"))
+        files = glob.glob(os.path.join(DATA_DIR, "data_*.ndjson"))
         files.sort(reverse=True)  # Most recent first
         
         for file in files:
             if len(all_data) >= n:
                 break
             
+            file_data = []
             with open(file, 'r') as f:
-                data = json.load(f)
-                all_data.extend(reversed(data))  # Add in reverse order
+                for line in f:
+                    line = line.strip()
+                    if line:
+                        file_data.append(json.loads(line))
+            
+            # Add in reverse order (most recent first)
+            all_data.extend(reversed(file_data))
                 
         # Return only the requested number of entries
         return jsonify(all_data[:n])
@@ -157,5 +177,16 @@ def delete_key(device_address):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.after_request
+def after_request(response):
+    """Add security headers to all responses."""
+    # Add Permissions-Policy header without browsing-topics
+    response.headers['Permissions-Policy'] = 'geolocation=(), microphone=(), camera=()'
+    # Add other security headers
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    return response
+
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=80, debug=False) 
+    app.run(host='0.0.0.0', port=8081, debug=False) 
