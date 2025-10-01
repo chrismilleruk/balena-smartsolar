@@ -1,0 +1,20 @@
+"time","Voltage Low","Voltage High","Voltage Open","Voltage Close","Charge Volume"
+2025-09-01 01:00:00,11.60 Volts,11.70 Volts,11.70 Volts,11.67 Volts,-367.72 mWh
+2025-09-02 01:00:00,11.55 Volts,11.67 Volts,11.67 Volts,11.62 Volts,-636.45 mWh
+2025-09-03 01:00:00,11.47 Volts,11.62 Volts,11.62 Volts,11.57 Volts,-671.60 mWh
+2025-09-04 01:00:00,10.69 Volts,13.77 Volts,11.56 Volts,11.64 Volts,-536.50 mWh
+2025-09-05 01:00:00,11.36 Volts,11.65 Volts,11.62 Volts,11.46 Volts,-897.58 mWh
+2025-09-06 01:00:00,11.23 Volts,11.46 Volts,11.46 Volts,11.35 Volts,-659.35 mWh
+2025-09-07 01:00:00,8.44 Volts,11.36 Volts,11.35 Volts,8.44 Volts,-111.52 mWh
+2025-09-13 01:00:00,11.75 Volts,13.95 Volts,13.95 Volts,11.77 Volts,-392.28 mWh
+2025-09-14 01:00:00,11.50 Volts,11.77 Volts,11.77 Volts,11.54 Volts,-734.40 mWh
+2025-09-15 01:00:00,10.63 Volts,11.54 Volts,11.54 Volts,10.67 Volts,-717.53 mWh
+2025-09-16 01:00:00,8.32 Volts,13.91 Volts,10.64 Volts,8.40 Volts,0.00 Wh
+2025-09-24 01:00:00,11.82 Volts,13.82 Volts,13.82 Volts,11.83 Volts,-236.43 mWh
+2025-09-25 01:00:00,11.57 Volts,11.83 Volts,11.83 Volts,11.60 Volts,-894.72 mWh
+2025-09-26 01:00:00,11.29 Volts,11.60 Volts,11.60 Volts,11.35 Volts,-912.32 mWh
+2025-09-27 01:00:00,8.48 Volts,14.08 Volts,11.35 Volts,12.85 Volts,-978.85 mWh
+2025-09-28 01:00:00,12.83 Volts,12.86 Volts,12.84 Volts,12.85 Volts,-128.40 mWh
+2025-09-29 01:00:00,12.63 Volts,12.85 Volts,12.85 Volts,12.67 Volts,-1.10 Wh
+2025-09-30 01:00:00,12.49 Volts,12.67 Volts,12.67 Volts,12.52 Volts,-962.10 mWh
+2025-10-01 01:00:00,12.43 Volts,12.53 Volts,12.53 Volts,12.43 Volts,-498.00 mWh

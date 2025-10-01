@@ -1,0 +1,20 @@
+"time","Engine Voltage Low","Engine Voltage High","Engine Voltage Open","Engine Voltage Close","Engine Power Volume (Wh)"
+2025-09-01 01:00:00,12.1 Volts,12.2 Volts,12.1 Volts,12.2 Volts,0 Wh
+2025-09-02 01:00:00,12.1 Volts,12.2 Volts,12.2 Volts,12.1 Volts,0 Wh
+2025-09-03 01:00:00,12.1 Volts,12.2 Volts,12.1 Volts,12.1 Volts,0 Wh
+2025-09-04 01:00:00,11.4 Volts,13.6 Volts,12.1 Volts,12.1 Volts,64.4 Wh
+2025-09-05 01:00:00,12.1 Volts,12.2 Volts,12.1 Volts,12.1 Volts,0 Wh
+2025-09-06 01:00:00,12.1 Volts,12.2 Volts,12.1 Volts,12.1 Volts,0 Wh
+2025-09-07 01:00:00,12.1 Volts,12.1 Volts,12.1 Volts,12.1 Volts,0 Wh
+2025-09-13 01:00:00,11.6 Volts,13.8 Volts,13.8 Volts,12.1 Volts,195 Wh
+2025-09-14 01:00:00,12.0 Volts,12.2 Volts,12.1 Volts,12.1 Volts,0 Wh
+2025-09-15 01:00:00,12 Volts,12.1 Volts,12.1 Volts,12.1 Volts,0 Wh
+2025-09-16 01:00:00,9.88 Volts,13.8 Volts,12.1 Volts,12.1 Volts,334 Wh
+2025-09-24 01:00:00,12.3 Volts,13.7 Volts,13.7 Volts,12.3 Volts,6.85 Wh
+2025-09-25 01:00:00,12.2 Volts,12.3 Volts,12.3 Volts,12.2 Volts,0 Wh
+2025-09-26 01:00:00,12.2 Volts,12.3 Volts,12.3 Volts,12.2 Volts,0 Wh
+2025-09-27 01:00:00,9.57 Volts,13.9 Volts,12.2 Volts,12.7 Volts,2.26 kWh
+2025-09-28 01:00:00,12.7 Volts,12.8 Volts,12.7 Volts,12.8 Volts,0 Wh
+2025-09-29 01:00:00,12.6 Volts,12.8 Volts,12.8 Volts,12.7 Volts,0 Wh
+2025-09-30 01:00:00,12.6 Volts,12.7 Volts,12.6 Volts,12.6 Volts,0 Wh
+2025-10-01 01:00:00,12.5 Volts,12.6 Volts,12.6 Volts,12.6 Volts,0 Wh
